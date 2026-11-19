@@ -1,0 +1,43 @@
+name: Daily Activity
+
+on:
+  schedule:
+    # 01:00 UTC = 08:00 WIB (Asia/Jakarta)
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure commit identity
+        env:
+          GH_USER_EMAIL: ${{ secrets.GH_USER_EMAIL }}
+        run: |
+          if [ -z "$GH_USER_EMAIL" ]; then
+            echo "Secret GH_USER_EMAIL belum diatur."
+            exit 1
+          fi
+          git config user.name "maylenee"
+          git config user.email "$GH_USER_EMAIL"
+
+      - name: Update daily activity
+        run: |
+          echo "Activity updated: $(date -u '+%Y-%m-%d')" >> activity.txt
+
+      - name: Commit and push
+        run: |
+          git add activity.txt
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan untuk di-commit."
+            exit 0
+          fi
+          git commit -m "chore: daily activity $(date -u '+%Y-%m-%d')"
+          git push
